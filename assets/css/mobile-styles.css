@@ -1,0 +1,22 @@
+@media (max-width: 767px) {
+    .content-wrapper {
+        padding: 0.5rem;
+    }
+    .card .card-body {
+        padding: 0.5rem;
+    }
+    html {
+        font-size: 75%;
+    }
+    
+    /* Add these new styles for table columns */
+    table.table td, 
+    table.table th {
+        padding: 0.3rem !important;
+    }
+    
+    .table-responsive {
+        margin: 0;
+        padding: 0;
+    }
+}
