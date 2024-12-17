@@ -1,11 +1,24 @@
 <?php
 header('Content-Type: text/html');
-require_once "../includes/db/config.php";
-require_once "../includes/mail/mail_config.php";
+require_once "includes/db/config.php";
+require_once "includes/mail/mail_config.php";
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
+
+// Disable displaying errors on screen
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+ini_set('log_errors', 1);
+
+// Create logs directory if it doesn't exist
+$logDir = __DIR__ . '/logs';
+if (!file_exists($logDir)) {
+    mkdir($logDir, 0777, true);
+}
+ini_set('error_log', $logDir . '/php-error.log');
 
 // Get the token and user ID from the URL
 $token = isset($_GET['token']) ? $_GET['token'] : '';
