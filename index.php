@@ -217,7 +217,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     // Content
                                     $mail->isHTML(true);
                                     $mail->Subject = 'Login Approval Request';
-                                    $approval_link = "http://{$_SERVER['HTTP_HOST']}/api/approve_login.php?token=" . $token . "&user_id=" . $id;
+                                    $approval_link = "http://{$_SERVER['HTTP_HOST']}/approve_login.php?token=" . $token . "&user_id=" . $id;
                                     $mail->Body    = "A user with email {$email} is trying to login.<br><br>
                                                      Click <a href='{$approval_link}'>here</a> to approve and send verification code.<br><br>
                                                      IP Address: {$ip_address}";
