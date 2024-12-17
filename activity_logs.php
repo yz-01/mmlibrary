@@ -12,7 +12,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 
 // Database connection
 require_once "includes/db/config.php";
-s
+
 // Fetch logs with user information
 $sql = "SELECT al.*, u.username, u.email 
         FROM activity_logs al 

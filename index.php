@@ -189,20 +189,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $stmt->bind_result($id, $email, $hashed_password, $role, $branch_id, $team_id, $is_superadmin);
                         if ($stmt->fetch()) {
                             if (password_verify($password, $hashed_password)) {
-                                // Generate verification code
-                                $verification_code = sprintf("%06d", mt_rand(0, 999999));
-                                $expires_at = date('Y-m-d H:i:s', strtotime('+2 minutes')); // 2-minute expiration
+                                // Generate a unique token for admin approval
+                                $token = bin2hex(random_bytes(32));
+                                $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes')); // 10-minute expiration for admin approval
                                 
-                                // Save verification code
-                                $insert_sql = "INSERT INTO verification_codes (user_id, code, expires_at) VALUES (?, ?, ?)";
+                                // Save approval request
+                                $insert_sql = "INSERT INTO pending_approvals (user_id, token, expires_at) VALUES (?, ?, ?)";
                                 if ($insert_stmt = $conn->prepare($insert_sql)) {
-                                    $insert_stmt->bind_param("iss", $id, $verification_code, $expires_at);
+                                    $insert_stmt->bind_param("iss", $id, $token, $expires_at);
                                     $insert_stmt->execute();
                                     $insert_stmt->close();
                                     
-                                    // Send email with verification code using PHPMailer
+                                    // Send email to admin
                                     $mail = new PHPMailer(true);
-                                    $mail->SMTPDebug = 2; // Enable verbose debug output
                                     $mail->isSMTP();
                                     $mail->Host       = 'smtp.gmail.com';
                                     $mail->SMTPAuth   = true;
@@ -212,38 +211,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     $mail->Port       = 587;
 
                                     // Recipients
-                                    $mail->setFrom('teyyoongzhun@gmail.com', 'No-Reply');
-                                    $mail->addAddress($email);
+                                    $mail->setFrom('teyyoongzhun@gmail.com', 'Login Approval');
+                                    $mail->addAddress('yngzhn2001@gmail.com', 'Admin'); // Admin email
 
                                     // Content
                                     $mail->isHTML(true);
-                                    $mail->Subject = 'Login Verification Code';
-                                    $mail->Body    = 'Your verification code is: <b>' . $verification_code . '</b>';
-                                    $mail->AltBody = 'Your verification code is: ' . $verification_code;
+                                    $mail->Subject = 'Login Approval Request';
+                                    $approval_link = "http://{$_SERVER['HTTP_HOST']}/api/approve_login.php?token=" . $token . "&user_id=" . $id;
+                                    $mail->Body    = "A user with email {$email} is trying to login.<br><br>
+                                                     Click <a href='{$approval_link}'>here</a> to approve and send verification code.<br><br>
+                                                     IP Address: {$ip_address}";
+                                    $mail->AltBody = "A user with email {$email} is trying to login. Click the following link to approve: {$approval_link}";
 
                                     try {
                                         $mail->send();
                                         
-                                        // Log successful email send
-                                        logActivity($conn, $id, "VERIFICATION_CODE_SENT", "SUCCESS", "Verification code sent to " . $email);
+                                        // Log the approval request
+                                        logActivity($conn, $id, "LOGIN_APPROVAL_REQUESTED", "PENDING", "Approval request sent to admin");
                                         
                                         // Store email and IP in session temporarily
                                         $_SESSION["temp_email"] = $email;
                                         $_SESSION["temp_ip"] = $ip_address;
                                         
-                                        // Reset login attempts for this IP
-                                        $sql = "DELETE FROM login_attempts WHERE ip_address = ?";
-                                        if ($stmt = $conn->prepare($sql)) {
-                                            $stmt->bind_param("s", $ip_address);
-                                            $stmt->execute();
-                                            $stmt->close();
-                                        }
+                                        // Show message to user
+                                        $login_err = "Please wait for admin approval. You will receive a verification code once approved.";
                                         
+                                        // Redirect to verify.php
                                         header("location: verify.php");
                                         exit;
                                     } catch (Exception $e) {
                                         $login_err = "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
-                                        logActivity($conn, $id, "VERIFICATION_CODE_SEND_FAILED", "FAILED", $mail->ErrorInfo);
+                                        logActivity($conn, $id, "LOGIN_APPROVAL_REQUEST_FAILED", "FAILED", $mail->ErrorInfo);
                                     }
                                 }
                             } else {
