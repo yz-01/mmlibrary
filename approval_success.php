@@ -13,10 +13,12 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Login Approval Status</title>
-    <link rel="stylesheet" href="../assets/vendors/mdi/css/materialdesignicons.min.css">
-    <link rel="stylesheet" href="../assets/vendors/css/vendor.bundle.base.css">
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="shortcut icon" href="../assets/images/favicon.png" />
+    <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="assets/vendors/ti-icons/css/themify-icons.css">
+    <link rel="stylesheet" href="assets/vendors/css/vendor.bundle.base.css">
+    <link rel="stylesheet" href="assets/vendors/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="shortcut icon" href="assets/images/favicon.png" />
 </head>
 <body>
     <div class="container-scroller">
@@ -26,7 +28,7 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
                     <div class="col-lg-4 mx-auto">
                         <div class="auth-form-light text-left p-5">
                             <div class="brand-logo text-center">
-                                <img src="../assets/images/crm_logo.png" alt="logo" style="height: 40px;">
+                                <img src="assets/images/crm_logo.png" alt="logo" style="height: 40px;">
                             </div>
                             <div class="text-center mt-4">
                                 <?php if ($success): ?>

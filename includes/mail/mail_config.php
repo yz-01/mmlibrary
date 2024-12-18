@@ -8,11 +8,11 @@ use PHPMailer\PHPMailer\Exception;
 
 // Email configuration
 define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_USERNAME', 'teyyoongzhun@gmail.com');
-define('SMTP_PASSWORD', 'qpnb vpku jcdt xjuk');
+define('SMTP_USERNAME', 'noreply.nrhere@gmail.com');
+define('SMTP_PASSWORD', 'shea dgfr thuq klcg');
 define('SMTP_PORT', 587);
 define('SMTP_ENCRYPTION', PHPMailer::ENCRYPTION_STARTTLS);
-define('SMTP_FROM_EMAIL', 'teyyoongzhun@gmail.com');
+define('SMTP_FROM_EMAIL', 'noreply.nrhere@gmail.com');
 define('SMTP_FROM_NAME', 'CRM System');
 
 // Function to create a configured PHPMailer instance

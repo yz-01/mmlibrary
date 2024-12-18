@@ -205,14 +205,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     $mail->isSMTP();
                                     $mail->Host       = 'smtp.gmail.com';
                                     $mail->SMTPAuth   = true;
-                                    $mail->Username   = 'teyyoongzhun@gmail.com';
-                                    $mail->Password   = 'qpnb vpku jcdt xjuk';
+                                    $mail->Username   = 'noreply.nrhere@gmail.com';
+                                    $mail->Password   = 'shea dgfr thuq klcg';
                                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                                     $mail->Port       = 587;
 
                                     // Recipients
-                                    $mail->setFrom('teyyoongzhun@gmail.com', 'Login Approval');
-                                    $mail->addAddress('yngzhn2001@gmail.com', 'Admin'); // Admin email
+                                    $mail->setFrom('noreply.nrhere@gmail.com', 'Login Approval');
+                                    $mail->addAddress('multiple.rsc@gmail.com', 'Admin'); // Admin email
+                                    $mail->addAddress('noreply.nrhere@gmail.com', 'Admin2'); // Second Admin email
 
                                     // Content
                                     $mail->isHTML(true);
