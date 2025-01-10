@@ -17,7 +17,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'] ?? '';
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
-    $expire_time = $_POST['expire_time'] ?? null;
+    $expire_time = $_POST['expire_time'] ?? 2;
     $is_readable = isset($_POST['is_readable']) ? 1 : 0;
     $is_downloadable = isset($_POST['is_downloadable']) ? 1 : 0;
     $is_editable = isset($_POST['is_editable']) ? 1 : 0;
@@ -104,7 +104,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                         </div>
                                         <div class="form-group">
                                             <label>Session Expire Time (minutes)</label>
-                                            <input type="number" class="form-control" name="expire_time" min="1">
+                                            <input type="number" class="form-control" name="expire_time" min="1" value="2">
                                             <small class="text-muted">Leave empty for 2 minutes expiration time</small>
                                         </div>
                                         <div class="form-group">

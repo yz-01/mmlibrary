@@ -25,6 +25,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
             <span class="mdi mdi-menu"></span>
         </button>
         <ul class="navbar-nav navbar-nav-right">
+            <?php if (!isset($_SESSION["role"]) || $_SESSION["role"] != 1): ?>
             <li class="nav-item">
                 <div class="nav-link">
                     <span class="text-danger fw-bold" id="sessionTimer"></span>
@@ -97,6 +98,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
             const timerInterval = setInterval(updateTimer, 1000);
             updateTimer(); // Initial call
             </script>
+            <?php endif; ?>
             <li class="nav-item nav-profile dropdown">
                 <a class="nav-link dropdown-toggle" id="profileDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
                     <div class="nav-profile-text">
