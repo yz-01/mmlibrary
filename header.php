@@ -58,7 +58,14 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
             </style>
             <script>
             // Calculate the remaining time
-            const expireTime = <?php echo isset($_SESSION["expire_time"]) ? $_SESSION["expire_time"] : 0; ?> * 1000; // Convert to milliseconds
+            const expireTime = <?php 
+                // Use existing timestamp if set, otherwise create new one
+                if (!isset($_SESSION["expire_timestamp"])) {
+                    $minutes = isset($_SESSION["expire_time"]) ? $_SESSION["expire_time"] : 0;
+                    $_SESSION["expire_timestamp"] = time() + ($minutes * 60);
+                }
+                echo $_SESSION["expire_timestamp"];
+            ?> * 1000; // Convert to milliseconds
 
             function updateTimer() {
                 const now = new Date().getTime();
@@ -73,7 +80,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
                 }
                 
                 // Calculate minutes and seconds
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const minutes = Math.floor(distance / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
                 
                 // Display the timer with leading zeros
@@ -89,24 +96,6 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
             // Update timer every second
             const timerInterval = setInterval(updateTimer, 1000);
             updateTimer(); // Initial call
-
-            // Add warning when 30 seconds remaining
-            setInterval(() => {
-                const now = new Date().getTime();
-                const distance = expireTime - now;
-                
-                if (distance <= 30000 && distance > 29000) { // 30 seconds remaining
-                    if (confirm('Your session will expire in 30 seconds. Would you like to extend?')) {
-                        fetch('extend_session.php')
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    window.location.reload();
-                                }
-                            });
-                    }
-                }
-            }, 1000);
             </script>
             <li class="nav-item nav-profile dropdown">
                 <a class="nav-link dropdown-toggle" id="profileDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">

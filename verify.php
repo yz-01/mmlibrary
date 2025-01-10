@@ -93,7 +93,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
         $verification_code = trim($_POST["verification_code"]);
         
         // Verify the code from database
-        $sql = "SELECT u.id, u.email, u.role, u.branch_id, u.team_id, u.is_superadmin 
+        $sql = "SELECT u.id, u.email, u.role, u.expire_time, u.is_readable, u.is_downloadable, u.is_editable 
                FROM verification_codes vc 
                JOIN user u ON vc.user_id = u.id 
                WHERE vc.code = ? AND vc.is_used = 0 
@@ -106,7 +106,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt->store_result();
                 
                 if($stmt->num_rows == 1) {
-                    $stmt->bind_result($id, $email, $role, $branch_id, $team_id, $is_superadmin);
+                    $stmt->bind_result($id, $email, $role, $expire_time, $is_readable, $is_downloadable, $is_editable);
                     if($stmt->fetch()) {
                         // Log successful verification
                         logActivity($conn, $id, "VERIFICATION_SUCCESS", "SUCCESS", "User verified and logged in");
@@ -116,9 +116,10 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
                         $_SESSION["id"] = $id;
                         $_SESSION["email"] = $email;
                         $_SESSION["role"] = $role;
-                        $_SESSION["branch_id"] = $branch_id;
-                        $_SESSION["team_id"] = $team_id;
-                        $_SESSION["is_superadmin"] = $is_superadmin;
+                        $_SESSION["expire_time"] = $expire_time;
+                        $_SESSION["is_readable"] = $is_readable;
+                        $_SESSION["is_downloadable"] = $is_downloadable;
+                        $_SESSION["is_editable"] = $is_editable;
 
                         // Mark verification code as used
                         $update_sql = "UPDATE verification_codes SET is_used = 1 WHERE code = ?";
@@ -130,11 +131,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
                         unset($_SESSION["temp_email"]);
                         unset($_SESSION["temp_ip"]);
                         
-                        // After successful verification, before redirect
-                        $_SESSION["expire_time"] = time() + (2 * 60); // 2 minutes from now
-                        
                         // Redirect to dashboard
-                        header("location: documents.php?uid=" . $id . "&uemail=" . $email);
+                        header("location: file_management.php?uid=" . $id . "&uemail=" . $email);
                         exit;
                     }
                 } else {

@@ -16,14 +16,32 @@ require_once "includes/db/config.php";
 // Check user role
 $user_role = $_SESSION["role"];
 $is_superadmin = $_SESSION["is_superadmin"];
+$is_readable = $_SESSION["is_readable"];
+$is_downloadable = $_SESSION["is_downloadable"];
+$is_editable = $_SESSION["is_editable"];
 ?>
 
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
   <div class="sidebar-sticky">
     <ul class="nav">
-      <li class="nav-item">
+      <!-- <li class="nav-item">
         <a class="nav-link" href="documents.php">
           <span class="menu-title">Documents</span>
+          <i class="mdi mdi-view-dashboard menu-icon"></i>
+        </a>
+      </li> -->
+      <?php if ($is_readable == 1): ?>
+      <li class="nav-item">
+        <a class="nav-link" href="file_management.php">
+          <span class="menu-title">File Management</span>
+          <i class="mdi mdi-view-dashboard menu-icon"></i>
+        </a>
+      </li>
+      <?php endif; ?>
+      <?php if ($user_role == 1): ?>
+      <li class="nav-item">
+        <a class="nav-link" href="users.php">
+          <span class="menu-title">User Management</span>
           <i class="mdi mdi-view-dashboard menu-icon"></i>
         </a>
       </li>
@@ -33,6 +51,7 @@ $is_superadmin = $_SESSION["is_superadmin"];
           <i class="mdi mdi-view-dashboard menu-icon"></i>
         </a>
       </li>
+      <?php endif; ?>
     </ul>
   </div>
 </nav>

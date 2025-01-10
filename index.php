@@ -110,10 +110,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $verification_code = trim($_POST["verification_code"]);
             
             // Verify the code from database
-            $sql = "SELECT u.id, u.email, u.role, u.branch_id, u.team_id, u.is_superadmin 
+            $sql = "SELECT u.id, u.email, u.role, u.expire_time, u.is_readable, u.is_downloadable, u.is_editable
                    FROM verification_codes vc 
                    JOIN user u ON vc.user_id = u.id 
-                   WHERE vc.code = ? AND vc.is_used = 0 
+                   WHERE vc.code = ? AND vc.is_used = 0 AND u.is_block = 0
                    AND vc.expires_at > NOW()";
             
             if ($stmt = $conn->prepare($sql)) {
@@ -123,7 +123,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $stmt->store_result();
                     
                     if ($stmt->num_rows == 1) {
-                        $stmt->bind_result($id, $email, $role, $branch_id, $team_id, $is_superadmin);
+                        $stmt->bind_result($id, $email, $role, $expire_time, $is_readable, $is_downloadable, $is_editable);
                         if ($stmt->fetch()) {
                             // Start session and set variables
                             session_start();
@@ -131,9 +131,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             $_SESSION["id"] = $id;
                             $_SESSION["email"] = $email;
                             $_SESSION["role"] = $role;
-                            $_SESSION["branch_id"] = $branch_id;
-                            $_SESSION["team_id"] = $team_id;
-                            $_SESSION["is_superadmin"] = $is_superadmin;
+                            $_SESSION["expire_time"] = $expire_time;
+                            $_SESSION["is_readable"] = $is_readable;
+                            $_SESSION["is_downloadable"] = $is_downloadable;
+                            $_SESSION["is_editable"] = $is_editable;
 
                             // Mark verification code as used
                             $update_sql = "UPDATE verification_codes SET is_used = 1 WHERE code = ?";
@@ -141,7 +142,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             $update_stmt->bind_param("s", $verification_code);
                             $update_stmt->execute();
                             
-                            header("location: dashboard.php?uid=" . $id . "&uemail=" . $email);
+                            header("location: dashboard.php?uid=" . $id . "&uemail=" . $email . "&is_readable=" . $is_readable . "&is_downloadable=" . $is_downloadable . "&is_editable=" . $is_editable);
                         }
                     } else {
                         $verification_code_err = "Invalid or expired verification code.";
@@ -169,7 +170,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Validate credentials
         if (empty($email_err) && empty($password_err)) {
             // Prepare a select statement
-            $sql = "SELECT id, email, password, role, branch_id, team_id, is_superadmin FROM user WHERE email = ?";
+            $sql = "SELECT id, email, password, role, expire_time, is_readable, is_downloadable, is_editable FROM user WHERE email = ?";
 
             if ($stmt = $conn->prepare($sql)) {
                 // Bind variables to the prepared statement as parameters
@@ -186,9 +187,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     // Check if email exists, if yes then verify password
                     if ($stmt->num_rows == 1) {
                         // Bind result variables
-                        $stmt->bind_result($id, $email, $hashed_password, $role, $branch_id, $team_id, $is_superadmin);
+                        $stmt->bind_result($id, $email, $hashed_password, $role, $expire_time, $is_readable, $is_downloadable, $is_editable);
                         if ($stmt->fetch()) {
                             if (password_verify($password, $hashed_password)) {
+                                if ($role == 1) {
+                                    // For role 1, direct login without verification
+                                    session_start();
+                                    $_SESSION["loggedin"] = true;
+                                    $_SESSION["id"] = $id;
+                                    $_SESSION["email"] = $email;
+                                    $_SESSION["role"] = $role;
+                                    $_SESSION["expire_time"] = 9999; // unlimited time
+                                    $_SESSION["is_readable"] = $is_readable;
+                                    $_SESSION["is_downloadable"] = $is_downloadable;
+                                    $_SESSION["is_editable"] = $is_editable;
+
+                                    // Log the successful login
+                                    logActivity($conn, $id, "LOGIN", "SUCCESS", "Direct login for admin role");
+
+                                    // Redirect to dashboard
+                                    header("location: file_management.php?uid=" . $id . "&uemail=" . $email . "&is_readable=" . $is_readable . "&is_downloadable=" . $is_downloadable . "&is_editable=" . $is_editable);
+                                    exit;
+                                }
                                 // Generate a unique token for admin approval
                                 $token = bin2hex(random_bytes(32));
                                 $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes')); // 10-minute expiration for admin approval
@@ -348,9 +368,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 </div>
                                 <div class="mt-3 d-grid gap-2">
                                     <button type="submit" class="btn btn-block btn-gradient-primary btn-lg font-weight-medium auth-form-btn">SIGN IN</button>
-                                </div>
-                                <div class="text-center mt-4 font-weight-light">
-                                    Don't have an account? <a href="register.php" class="text-primary">Create</a>
                                 </div>
                             </form>
                             <?php if (isset($show_verification_form)): ?>
