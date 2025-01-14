@@ -380,6 +380,10 @@ $result = $stmt->get_result();
     <script src="assets/vendors/js/vendor.bundle.base.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
+    <script src="assets/js/off-canvas.js"></script>
+    <script src="assets/js/hoverable-collapse.js"></script>
+    <script src="assets/js/misc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
     $(document).ready(function() {
@@ -402,45 +406,99 @@ $result = $stmt->get_result();
         // Function to handle rename
         window.renameItem = function(id, currentName) {
             if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-                alert('You do not have permission to rename items');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Permission Denied',
+                    text: 'You do not have permission to rename items'
+                });
                 return;
             }
-            const newName = prompt("Enter new name for: " + currentName, currentName);
-            if (newName && newName !== currentName) {
-                // Add AJAX call to handle rename
-                $.post('includes/file_actions.php', {
-                    action: 'rename',
-                    id: id,
-                    new_name: newName
-                }, function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.message);
+            
+            Swal.fire({
+                title: 'Rename Item',
+                input: 'text',
+                inputLabel: `Enter new name for: ${currentName}`,
+                inputValue: currentName,
+                showCancelButton: true,
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Name cannot be empty';
                     }
-                }, 'json');
-            }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value !== currentName) {
+                    $.post('includes/file_actions.php', {
+                        action: 'rename',
+                        id: id,
+                        new_name: result.value
+                    }, function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Renamed Successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message
+                            });
+                        }
+                    }, 'json');
+                }
+            });
         };
 
         // Function to handle delete
         window.deleteItem = function(id, name) {
             if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-                alert('You do not have permission to delete items');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Permission Denied',
+                    text: 'You do not have permission to delete items'
+                });
                 return;
             }
-            if (confirm("Are you sure you want to delete: " + name + "?")) {
-                // Add AJAX call to handle delete
-                $.post('includes/file_actions.php', {
-                    action: 'delete',
-                    id: id
-                }, function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                }, 'json');
-            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `Do you want to delete "${name}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('includes/file_actions.php', {
+                        action: 'delete',
+                        id: id
+                    }, function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: 'The item has been deleted.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message
+                            });
+                        }
+                    }, 'json');
+                }
+            });
         };
     });
 

@@ -126,6 +126,10 @@ $result = $conn->query($sql);
     </div>
 
     <script src="assets/vendors/js/vendor.bundle.base.js"></script>
+    <script src="assets/js/off-canvas.js"></script>
+    <script src="assets/js/hoverable-collapse.js"></script>
+    <script src="assets/js/misc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     function createUser() {
         const username = document.getElementById('newUsername').value;

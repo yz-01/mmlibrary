@@ -34,7 +34,7 @@ $is_editable = $_SESSION["is_editable"];
       <li class="nav-item">
         <a class="nav-link" href="file_management.php">
           <span class="menu-title">File Management</span>
-          <i class="mdi mdi-view-dashboard menu-icon"></i>
+          <i class="mdi mdi-folder-multiple menu-icon"></i>
         </a>
       </li>
       <?php endif; ?>
@@ -42,13 +42,13 @@ $is_editable = $_SESSION["is_editable"];
       <li class="nav-item">
         <a class="nav-link" href="users.php">
           <span class="menu-title">User Management</span>
-          <i class="mdi mdi-view-dashboard menu-icon"></i>
+          <i class="mdi mdi-account-multiple menu-icon"></i>
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="activity_logs.php">
           <span class="menu-title">Activity Logs</span>
-          <i class="mdi mdi-view-dashboard menu-icon"></i>
+          <i class="mdi mdi-history menu-icon"></i>
         </a>
       </li>
       <?php endif; ?>
