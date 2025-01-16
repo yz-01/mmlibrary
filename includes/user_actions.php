@@ -109,6 +109,44 @@ switch ($action) {
         }
         break;
 
+    case 'change_password':
+        $user_id = $data['user_id'] ?? '';
+        $current_password = $data['current_password'] ?? '';
+        $new_password = $data['new_password'] ?? '';
+        
+        // Verify user exists and get current password
+        $sql = "SELECT password FROM user WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            
+            // Verify current password
+            if (password_verify($current_password, $user['password'])) {
+                // Hash new password
+                $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+                
+                // Update password
+                $update_sql = "UPDATE user SET password = ? WHERE id = ?";
+                $update_stmt = $conn->prepare($update_sql);
+                $update_stmt->bind_param("si", $hashed_password, $user_id);
+                
+                if ($update_stmt->execute()) {
+                    echo json_encode(['success' => true, 'message' => 'Password updated successfully']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Error updating password']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Current password is incorrect']);
+            }
+        } else {
+            echo json_encode(['success' => false, 'message' => 'User not found']);
+        }
+        break;
+
     case 'delete':
         $id = $data['id'] ?? '';
         

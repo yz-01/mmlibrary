@@ -31,15 +31,9 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
                                 <img src="assets/images/crm_logo.png" alt="logo" style="height: 40px;">
                             </div>
                             <div class="text-center mt-4">
-                                <?php if ($success): ?>
-                                    <i class="mdi mdi-check-circle text-success" style="font-size: 48px;"></i>
-                                    <h4 class="text-success mt-3">Success!</h4>
-                                    <p class="mt-3">Verification code has been sent to the user.</p>
-                                <?php else: ?>
-                                    <i class="mdi mdi-close-circle text-danger" style="font-size: 48px;"></i>
-                                    <h4 class="text-danger mt-3">Error</h4>
-                                    <p class="mt-3"><?php echo $message ?: 'An error occurred while processing the request.'; ?></p>
-                                <?php endif; ?>
+                                <i class="mdi mdi-check-circle text-success" style="font-size: 48px;"></i>
+                                <h4 class="text-success mt-3">Success!</h4>
+                                <p class="mt-3">Verification code has been sent to the user.</p>
                                 <div class="mt-4">
                                     <p>You can close this window now.</p>
                                 </div>
