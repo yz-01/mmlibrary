@@ -266,41 +266,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     }
                                 }
                             } else {
-                                // Record failed attempt
-                                $sql = "INSERT INTO login_attempts (ip_address) VALUES (?)";
-                                if ($stmt = $conn->prepare($sql)) {
-                                    $stmt->bind_param("s", $ip_address);
-                                    $stmt->execute();
-                                    $stmt->close();
-                                }
-                                
-                                // Check number of recent failed attempts
-                                $sql = "SELECT COUNT(*) as attempt_count FROM login_attempts 
-                                        WHERE ip_address = ? AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)";
-                                if ($stmt = $conn->prepare($sql)) {
-                                    $stmt->bind_param("s", $ip_address);
-                                    $stmt->execute();
-                                    $result = $stmt->get_result();
-                                    $row = $result->fetch_assoc();
-                                    
-                                    if ($row['attempt_count'] >= 5) {
-                                        // Block IP for 30 minutes
-                                        $sql = "UPDATE login_attempts SET is_blocked = 1, 
-                                               block_expires_at = DATE_ADD(NOW(), INTERVAL 30 MINUTE) 
-                                               WHERE ip_address = ?";
-                                        if ($block_stmt = $conn->prepare($sql)) {
-                                            $block_stmt->bind_param("s", $ip_address);
-                                            $block_stmt->execute();
-                                            $block_stmt->close();
-                                        }
-                                        $login_err = "Too many failed attempts. Please try again later.";
-                                        logActivity($conn, null, "LOGIN_BLOCKED", "FAILED", "IP blocked due to multiple attempts");
-                                    } else {
-                                        $login_err = "Invalid email or password.";
-                                        logActivity($conn, null, "LOGIN_ATTEMPT", "FAILED", "Invalid credentials from IP: " . $ip_address);
-                                    }
-                                    $stmt->close();
-                                }
+                                // Password is incorrect
+                                $login_err = "Password is incorrect.";
                             }
                         }
                     } else {

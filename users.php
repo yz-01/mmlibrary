@@ -107,9 +107,9 @@ $result = $conn->query($sql);
                                                         <a href="edit_user.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info">
                                                             <i class="mdi mdi-pencil"></i>
                                                         </a>
-                                                        <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $row['id']; ?>)">
+                                                        <!-- <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $row['id']; ?>)">
                                                             <i class="mdi mdi-delete"></i>
-                                                        </button>
+                                                        </button> -->
                                                     </td>
                                                 </tr>
                                                 <?php endwhile; ?>

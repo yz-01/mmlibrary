@@ -106,8 +106,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
                     </div>
                 </a>
                 <div class="dropdown-menu navbar-dropdown" aria-labelledby="profileDropdown">
-                    <a class="dropdown-item" href="#" onclick="openChangePasswordModal()">
-                        <i class="mdi mdi-key me-2 text-primary"></i> Change Password 
+                    <a class="dropdown-item" href="change_password.php">
+                        <i class="mdi mdi-key me-2 text-primary"></i> Change Password
                     </a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="logout.php">
@@ -121,82 +121,3 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
         </button>
     </div>
 </nav>
-
-<!-- Change Password Modal -->
-<div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="changePasswordForm">
-                    <div class="form-group">
-                        <label for="current_password">Current Password</label>
-                        <input type="password" class="form-control" id="current_password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="new_password">New Password</label>
-                        <input type="password" class="form-control" id="new_password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm_password">Confirm New Password</label>
-                        <input type="password" class="form-control" id="confirm_password" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="changePassword()">Save Changes</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-function openChangePasswordModal() {
-    $('#changePasswordModal').modal('show');
-}
-
-function changePassword() {
-    const currentPassword = document.getElementById('current_password').value;
-    const newPassword = document.getElementById('new_password').value;
-    const confirmPassword = document.getElementById('confirm_password').value;
-    
-    if (newPassword !== confirmPassword) {
-        Swal.fire('Error', 'New passwords do not match!', 'error');
-        return;
-    }
-    
-    const data = {
-        action: 'change_password',
-        user_id: <?php echo $_SESSION['id']; ?>,
-        current_password: currentPassword,
-        new_password: newPassword
-    };
-    
-    fetch('includes/user_actions.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire('Success', data.message, 'success');
-            $('#changePasswordModal').modal('hide');
-            document.getElementById('changePasswordForm').reset();
-        } else {
-            Swal.fire('Error', data.message, 'error');
-        }
-    })
-    .catch(error => {
-        Swal.fire('Error', 'An error occurred while changing the password.', 'error');
-    });
-}
-</script>
