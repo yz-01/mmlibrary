@@ -9,8 +9,9 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     die(json_encode(['success' => false, 'message' => 'Not authorized']));
 }
 
-// Database connection
+// Database connection and S3 handler
 require_once "db/config.php";
+require_once "s3_handler.php";
 
 // Check if file was uploaded
 if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
@@ -25,66 +26,79 @@ $file = $_FILES['file'];
 
 // Validate file type
 $fileType = mime_content_type($file['tmp_name']);
-if ($fileType !== 'application/pdf') {
-    die(json_encode(['success' => false, 'message' => 'Only PDF files are allowed']));
+$allowedMimeTypes = [
+    'image/jpeg',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/pdf'
+];
+if (!in_array($fileType, $allowedMimeTypes)) {
+    die(json_encode(['success' => false, 'message' => 'Only PDF, JPEG, XLSX, and DOCX files are allowed']));
 }
 
 // Validate file extension
 $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-if ($fileExtension !== 'pdf') {
-    die(json_encode(['success' => false, 'message' => 'Only PDF files are allowed']));
+$allowedExtensions = ['jpg', 'jpeg', 'xlsx', 'docx', 'pdf'];
+if (!in_array($fileExtension, $allowedExtensions)) {
+    die(json_encode(['success' => false, 'message' => 'Only PDF, JPEG, XLSX, and DOCX files are allowed']));
 }
 
-// Validate file size (5MB max)
-$maxSize = 5 * 1024 * 1024; // 5MB in bytes
-if ($file['size'] > $maxSize) {
-    die(json_encode(['success' => false, 'message' => 'File size exceeds 5MB limit']));
-}
+// Validate file size (10MB max)
+// $maxSize = 10 * 1024 * 1024; // 10MB in bytes
+// if ($file['size'] > $maxSize) {
+//     die(json_encode(['success' => false, 'message' => 'File size exceeds 10MB limit']));
+// }
 
-// Create uploads directory if it doesn't exist
-$uploadDir = '../uploads/documents/';
-if (!file_exists($uploadDir)) {
-    mkdir($uploadDir, 0777, true);
-}
+try {
+    // Generate unique filename
+    $uniqueFilename = uniqid() . '.' . $fileExtension;
+    
+    // Create a folder name based on current date
+    $folder = date('Y-m-d');
+    
+    // Upload to S3
+    $s3_url = uploadFileToS3(
+        $file['tmp_name'],
+        S3_BUCKET,
+        $folder,
+        S3_REGION,
+        S3_ENDPOINT,
+        S3_ACCESS_KEY,
+        S3_SECRET_KEY
+    );
 
-// Generate unique filename
-$uniqueFilename = uniqid() . '.pdf';
-$uploadPath = $uploadDir . $uniqueFilename;
+    // Save file information to database
+    $sql = "INSERT INTO folders_files (
+        name, 
+        type, 
+        path, 
+        parent_directory, 
+        description, 
+        content,
+        created_by, 
+        modified_by
+    ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)";
 
-// Move uploaded file
-if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
-    die(json_encode(['success' => false, 'message' => 'Failed to save file']));
-}
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssssssi", 
+        $name,           // name
+        $fileExtension,  // type
+        $s3_url,        // path (now stores S3 URL)
+        $parent_directory, // parent_directory
+        $description,    // description
+        $_SESSION['id'], // created_by
+        $_SESSION['id']  // modified_by
+    );
 
-// Save file information to database
-$sql = "INSERT INTO folders_files (
-    name, 
-    type, 
-    path, 
-    parent_directory, 
-    description, 
-    content,
-    created_by, 
-    modified_by
-) VALUES (?, 'pdf', ?, ?, ?, NULL, ?, ?)";
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $stmt->error]);
+    }
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("ssssii", 
-    $name,          // name
-    $uniqueFilename, // path
-    $parent_directory, // parent_directory
-    $description,    // description
-    $_SESSION['id'], // created_by
-    $_SESSION['id']  // modified_by
-);
-
-if ($stmt->execute()) {
-    echo json_encode(['success' => true]);
-} else {
-    // If database insert fails, delete the uploaded file
-    unlink($uploadPath);
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $stmt->error]);
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => 'Upload error: ' . $e->getMessage()]);
 }
 
 $conn->close();
-?> 
+?>

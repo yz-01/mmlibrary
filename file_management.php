@@ -50,7 +50,7 @@ $result = $stmt->get_result();
     <link rel="stylesheet" href="assets/vendors/css/vendor.bundle.base.css">
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css">
-    <link rel="shortcut icon" href="assets/images/favicon.png" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
     <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="assets/vendors/ti-icons/css/themify-icons.css">
     <link rel="stylesheet" href="assets/vendors/css/vendor.bundle.base.css">
@@ -59,7 +59,6 @@ $result = $stmt->get_result();
     <link rel="stylesheet" href="assets/vendors/select2-bootstrap-theme/select2-bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="shortcut icon" href="assets/images/favicon.png" />
-    <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
     <style>
         .folder-icon {
             color: #ffc107;
@@ -212,9 +211,9 @@ $result = $stmt->get_result();
                                                                 <i class="mdi mdi-folder folder-icon"></i>
                                                                 <?php echo htmlspecialchars($row['name']); ?>
                                                             </a>
-                                                        <?php elseif($row['type'] == 'pdf'): ?>
+                                                        <?php elseif($row['type'] == 'pdf' || $row['type'] == 'docx' || $row['type'] == 'xlsx' || $row['type'] == 'jpg' || $row['type'] == 'jpeg' || $row['type'] == 'png'): ?>
                                                             <?php if ($_SESSION["is_readable"]): ?>
-                                                            <a href="javascript:void(0);" onclick="viewPDF('<?php echo htmlspecialchars($row['name']); ?>', 'uploads/documents/<?php echo htmlspecialchars($row['path']); ?>')" class="text-decoration-none">
+                                                            <a href="javascript:void(0);" class="view-pdf-btn" data-path="<?php echo htmlspecialchars($row['path']); ?>">
                                                                 <i class="mdi mdi-file-pdf file-icon"></i>
                                                                 <?php echo htmlspecialchars($row['name']); ?>
                                                             </a>
@@ -340,9 +339,9 @@ $result = $stmt->get_result();
                             <input type="text" class="form-control" id="documentName" name="documentName" required>
                         </div>
                         <div class="form-group mb-3">
-                            <label for="documentFile">Select File</label>
-                            <input type="file" class="form-control" id="documentFile" name="documentFile" accept=".pdf" required>
-                            <small class="form-text text-muted">Only PDF files allowed (Max size: 5MB)</small>
+                            <label for="documentFile">File</label>
+                            <input type="file" class="form-control" id="documentFile" name="documentFile" accept=".jpeg,.jpg,.xlsx,.docx,.pdf" required>
+                            <small class="form-text text-muted">Allowed file types: PDF, JPEG, XLSX, DOCX</small>
                         </div>
                         <div class="form-group mb-3">
                             <label for="documentDescription">Description (Optional)</label>
@@ -500,140 +499,232 @@ $result = $stmt->get_result();
                 }
             });
         };
-    });
 
-    function createFolder() {
-        if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-            alert('You do not have permission to create folders');
-            return;
-        }
-        const folderName = $('#folderName').val().trim();
-        const currentDirectory = '<?php echo $current_directory; ?>';
-        
-        if (!folderName) {
-            alert('Please enter a folder name');
-            return;
-        }
+        // Handle PDF viewing with presigned URL
+        $(document).on('click', '.view-pdf-btn', function(e) {
+            e.preventDefault();
+            const filePath = $(this).data('path');
+            const pdfViewer = $('#pdfViewer');
+            const pdfEmbed = $('#pdfEmbed');
+            
+            console.log('Requesting presigned URL for:', filePath);
+            
+            // Show loading state
+            pdfViewer.html('<div class="text-center p-5">Loading PDF...</div>');
+            $('#pdfViewerModal').modal('show');
 
-        $.post('includes/file_actions.php', {
-            action: 'create_folder',
-            name: folderName,
-            parent_directory: currentDirectory
-        }, function(response) {
-            if (response.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + response.message);
-            }
-        }, 'json');
-    }
-
-    // Clear form when modal is closed
-    $('#createFolderModal').on('hidden.bs.modal', function () {
-        $('#createFolderForm')[0].reset();
-    });
-
-    function createFile() {
-        if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-            alert('You do not have permission to create files');
-            return;
-        }
-        const fileName = $('#fileName').val().trim();
-        const fileDescription = $('#fileDescription').val().trim();
-        const currentDirectory = '<?php echo $current_directory; ?>';
-        
-        if (!fileName) {
-            alert('Please enter a file name');
-            return;
-        }
-
-        $.post('includes/file_actions.php', {
-            action: 'create_file',
-            name: fileName,
-            description: fileDescription,
-            parent_directory: currentDirectory
-        }, function(response) {
-            if (response.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + response.message);
-            }
-        }, 'json');
-    }
-
-    // Clear form when modal is closed
-    $('#createFileModal').on('hidden.bs.modal', function () {
-        $('#createFileForm')[0].reset();
-    });
-
-    function uploadDocument() {
-        if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-            alert('You do not have permission to upload documents');
-            return;
-        }
-        const formData = new FormData();
-        const fileInput = document.getElementById('documentFile');
-        const nameInput = document.getElementById('documentName');
-        const descriptionInput = document.getElementById('documentDescription');
-        const currentDirectory = '<?php echo $current_directory; ?>';
-
-        if (!fileInput.files[0]) {
-            alert('Please select a file');
-            return;
-        }
-
-        if (!nameInput.value.trim()) {
-            alert('Please enter a document name');
-            return;
-        }
-
-        formData.append('file', fileInput.files[0]);
-        formData.append('name', nameInput.value.trim());
-        formData.append('description', descriptionInput.value.trim());
-        formData.append('parent_directory', currentDirectory);
-
-        fetch('includes/upload_document.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error uploading document: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Error uploading document');
-            console.error('Error:', error);
+            // Get presigned URL
+            $.get('includes/get_presigned_url.php', { path: filePath })
+                .done(function(response) {
+                    try {
+                        console.log('Received response:', response);
+                        const data = typeof response === 'string' ? JSON.parse(response) : response;
+                        console.log('Parsed data:', data);
+                        
+                        if (data.success && data.url) {
+                            console.log('Loading PDF with URL:', data.url);
+                            
+                            // Create an iframe for better PDF handling
+                            const iframeHtml = `
+                                <div class="d-flex flex-column h-100">
+                                    <iframe 
+                                        src="${data.url}"
+                                        style="width: 100%; height: 80vh; border: none;"
+                                        type="application/pdf"
+                                    ></iframe>
+                                    <div class="text-center mt-2">
+                                        <a href="${data.url}" target="_blank" class="btn btn-primary">
+                                            Open in New Tab
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            pdfViewer.html(iframeHtml);
+                            
+                            // Add error handler for iframe
+                            pdfViewer.find('iframe').on('error', function() {
+                                console.error('Error loading PDF in iframe');
+                                pdfViewer.html(`
+                                    <div class="text-center p-5">
+                                        <p class="text-danger mb-3">Error loading PDF in viewer</p>
+                                        <a href="${data.url}" target="_blank" class="btn btn-primary">
+                                            Open PDF in New Tab
+                                        </a>
+                                    </div>
+                                `);
+                            });
+                        } else {
+                            console.error('Error in response:', data);
+                            pdfViewer.html(`
+                                <div class="text-center p-5 text-danger">
+                                    <p class="mb-3">Error: ${data.message || 'Could not load PDF'}</p>
+                                    ${data.debug ? '<small class="text-muted">Debug: ' + JSON.stringify(data.debug) + '</small>' : ''}
+                                </div>
+                            `);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing response:', e);
+                        pdfViewer.html(`
+                            <div class="text-center p-5 text-danger">
+                                <p class="mb-3">Error processing response. Please try again.</p>
+                                <small class="text-muted">Error details: ${e.message}</small>
+                            </div>
+                        `);
+                    }
+                })
+                .fail(function(jqXHR, textStatus, errorThrown) {
+                    console.error('AJAX Error:', {
+                        status: jqXHR.status,
+                        textStatus: textStatus,
+                        errorThrown: errorThrown
+                    });
+                    pdfViewer.html(`
+                        <div class="text-center p-5 text-danger">
+                            <p class="mb-3">Network error loading PDF. Please try again.</p>
+                            <small class="text-muted">Error: ${textStatus} - ${errorThrown}</small>
+                        </div>
+                    `);
+                });
         });
-    }
 
-    // Clear form when modal is closed
-    $('#uploadDocumentModal').on('hidden.bs.modal', function () {
-        $('#uploadDocumentForm')[0].reset();
-    });
+        // Function to handle create folder
+        function createFolder() {
+            if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
+                alert('You do not have permission to create folders');
+                return;
+            }
+            const folderName = $('#folderName').val().trim();
+            const currentDirectory = '<?php echo $current_directory; ?>';
+            
+            if (!folderName) {
+                alert('Please enter a folder name');
+                return;
+            }
 
-    function viewPDF(fileName, filePath) {
-        const viewer = document.getElementById('pdfViewer');
-        const embed = document.getElementById('pdfEmbed');
-        
-        if (!<?php echo $_SESSION["is_downloadable"] ? 'true' : 'false'; ?>) {
-            // For non-downloadable viewing, add #toolbar=0 to disable the toolbar
-            viewer.data = filePath + '#toolbar=0';
-            embed.src = filePath + '#toolbar=0';
-        } else {
-            viewer.data = filePath;
-            embed.src = filePath;
+            $.post('includes/file_actions.php', {
+                action: 'create_folder',
+                name: folderName,
+                parent_directory: currentDirectory
+            }, function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            }, 'json');
         }
-        
-        new bootstrap.Modal(document.getElementById('pdfViewerModal')).show();
-    }
 
-    // Clear iframe when modal is closed
-    document.getElementById('pdfViewerModal').addEventListener('hidden.bs.modal', function () {
-        document.getElementById('pdfViewer').src = '';
+        // Clear form when modal is closed
+        $('#createFolderModal').on('hidden.bs.modal', function () {
+            $('#createFolderForm')[0].reset();
+        });
+
+        // Function to handle create file
+        function createFile() {
+            if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
+                alert('You do not have permission to create files');
+                return;
+            }
+            const fileName = $('#fileName').val().trim();
+            const fileDescription = $('#fileDescription').val().trim();
+            const currentDirectory = '<?php echo $current_directory; ?>';
+            
+            if (!fileName) {
+                alert('Please enter a file name');
+                return;
+            }
+
+            $.post('includes/file_actions.php', {
+                action: 'create_file',
+                name: fileName,
+                description: fileDescription,
+                parent_directory: currentDirectory
+            }, function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            }, 'json');
+        }
+
+        // Clear form when modal is closed
+        $('#createFileModal').on('hidden.bs.modal', function () {
+            $('#createFileForm')[0].reset();
+        });
+
+        // Function to handle upload document
+        function uploadDocument() {
+            if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
+                alert('You do not have permission to upload documents');
+                return;
+            }
+            const formData = new FormData();
+            const fileInput = document.getElementById('documentFile');
+            const nameInput = document.getElementById('documentName');
+            const descriptionInput = document.getElementById('documentDescription');
+            const currentDirectory = '<?php echo $current_directory; ?>';
+
+            if (!fileInput.files[0]) {
+                alert('Please select a file');
+                return;
+            }
+
+            if (!nameInput.value.trim()) {
+                alert('Please enter a document name');
+                return;
+            }
+
+            formData.append('file', fileInput.files[0]);
+            formData.append('name', nameInput.value.trim());
+            formData.append('description', descriptionInput.value.trim());
+            formData.append('parent_directory', currentDirectory);
+
+            fetch('includes/upload_document.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error uploading document: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error uploading document');
+                console.error('Error:', error);
+            });
+        }
+
+        // Clear form when modal is closed
+        $('#uploadDocumentModal').on('hidden.bs.modal', function () {
+            $('#uploadDocumentForm')[0].reset();
+        });
+
+        // Function to handle view PDF
+        function viewPDF(fileName, filePath) {
+            const viewer = document.getElementById('pdfViewer');
+            const embed = document.getElementById('pdfEmbed');
+            
+            if (!<?php echo $_SESSION["is_downloadable"] ? 'true' : 'false'; ?>) {
+                // For non-downloadable viewing, add #toolbar=0 to disable the toolbar
+                viewer.data = filePath + '#toolbar=0';
+                embed.src = filePath + '#toolbar=0';
+            } else {
+                viewer.data = filePath;
+                embed.src = filePath;
+            }
+            
+            new bootstrap.Modal(document.getElementById('pdfViewerModal')).show();
+        }
+
+        // Clear iframe when modal is closed
+        document.getElementById('pdfViewerModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('pdfViewer').src = '';
+        });
     });
     </script>
 </body>
