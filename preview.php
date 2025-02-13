@@ -20,10 +20,36 @@ if (empty($fileUrl)) {
 
 // Determine file type from URL
 $fileExtension = strtolower(pathinfo(parse_url($fileUrl, PHP_URL_PATH), PATHINFO_EXTENSION));
-$isPDF = $fileExtension === 'pdf';
 
-// Google Docs Viewer URL for PDF preview
-$googleViewerUrl = $isPDF ? "https://docs.google.com/gview?embedded=true&url=" . urlencode($fileUrl) : '';
+// Define which file types can be previewed
+$previewableTypes = ['pdf', 'docx', 'xlsx', 'jpg', 'jpeg', 'png'];
+$officeTypes = ['pdf', 'docx', 'xlsx']; // Files that can be previewed with Google Docs
+$imageTypes = ['jpg', 'jpeg', 'png']; // Image files for direct display
+
+$canPreview = in_array($fileExtension, $previewableTypes);
+$isOfficeFile = in_array($fileExtension, $officeTypes);
+$isImage = in_array($fileExtension, $imageTypes);
+
+// Google Docs Viewer URL for office files
+$googleViewerUrl = $isOfficeFile ? "https://docs.google.com/gview?embedded=true&url=" . urlencode($fileUrl) : '';
+
+// Get appropriate icon class based on file type
+function getFileIconClass($extension) {
+    switch ($extension) {
+        case 'pdf':
+            return 'mdi-file-pdf';
+        case 'docx':
+            return 'mdi-file-word';
+        case 'xlsx':
+            return 'mdi-file-excel';
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+            return 'mdi-file-image';
+        default:
+            return 'mdi-file';
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -77,6 +103,18 @@ $googleViewerUrl = $isPDF ? "https://docs.google.com/gview?embedded=true&url=" .
             color: #6c757d;
             margin-bottom: 30px;
         }
+        .image-preview {
+            max-width: 100%;
+            max-height: 800px;
+            margin: 0 auto;
+            display: block;
+        }
+        .image-preview-container {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -111,19 +149,30 @@ $googleViewerUrl = $isPDF ? "https://docs.google.com/gview?embedded=true&url=" .
                                         <?php endif; ?>
                                     </div>
                                     
-                                    <?php if ($isPDF): ?>
-                                    <!-- PDF Preview -->
-                                    <div class="preview-container">
-                                        <iframe src="<?php echo htmlspecialchars($googleViewerUrl); ?>" 
-                                                class="preview-iframe"
-                                                allowfullscreen></iframe>
-                                    </div>
+                                    <?php if ($canPreview): ?>
+                                        <?php if ($isOfficeFile): ?>
+                                        <!-- Office File Preview (PDF, DOCX, XLSX) -->
+                                        <div class="preview-container">
+                                            <iframe src="<?php echo htmlspecialchars($googleViewerUrl); ?>" 
+                                                    class="preview-iframe"
+                                                    allowfullscreen></iframe>
+                                        </div>
+                                        <?php elseif ($isImage): ?>
+                                        <!-- Image Preview -->
+                                        <div class="preview-container">
+                                            <div class="image-preview-container">
+                                                <img src="<?php echo htmlspecialchars($fileUrl); ?>" 
+                                                     alt="Image Preview" 
+                                                     class="image-preview">
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                     <!-- No Preview Available -->
                                     <div class="preview-container">
                                         <div class="no-preview-container">
                                             <div class="no-preview-icon">
-                                                <i class="mdi mdi-file-document-outline"></i>
+                                                <i class="mdi <?php echo getFileIconClass($fileExtension); ?>"></i>
                                             </div>
                                             <h4 class="no-preview-text">
                                                 Preview not available for this file type.<br>
