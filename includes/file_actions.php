@@ -189,11 +189,17 @@ if ($_POST['action'] === 'rename') {
         // If it's a folder, we need to update all child paths
         if ($item['type'] === 'folder') {
             $old_path_pattern = $item['path'] . '/%';
-            $path_update_sql = "UPDATE folders_files SET path = CONCAT(?, SUBSTRING(path, ?)) 
+            // Update paths for all child items
+            $path_update_sql = "UPDATE folders_files SET 
+                               path = CONCAT(?, SUBSTRING(path, ?)),
+                               parent_directory = CASE 
+                                   WHEN parent_directory = ? THEN ?
+                                   ELSE CONCAT(?, SUBSTRING(parent_directory, ?))
+                               END
                                WHERE path LIKE ?";
             $path_update_stmt = $conn->prepare($path_update_sql);
             $old_path_len = strlen($item['path']) + 1;
-            $path_update_stmt->bind_param("sis", $new_path, $old_path_len, $old_path_pattern);
+            $path_update_stmt->bind_param("sisssss", $new_path, $old_path_len, $item['path'], $new_path, $new_path, $old_path_len, $old_path_pattern);
             $path_update_stmt->execute();
         }
 
