@@ -213,15 +213,22 @@ $result = $stmt->get_result();
                                                             </a>
                                                         <?php elseif($row['type'] == 'pdf' || $row['type'] == 'docx' || $row['type'] == 'xlsx' || $row['type'] == 'jpg' || $row['type'] == 'jpeg' || $row['type'] == 'png'): ?>
                                                             <?php if ($_SESSION["is_readable"]): ?>
-                                                            <a href="javascript:void(0);" class="view-pdf-btn" data-path="<?php echo htmlspecialchars($row['path']); ?>">
-                                                                <i class="mdi mdi-file-pdf file-icon"></i>
-                                                                <?php echo htmlspecialchars($row['name']); ?>
-                                                            </a>
+                                                                <?php if (strpos($row['path'], 'https') === 0): ?>
+                                                                    <a href="includes/get_presigned_url.php?path=<?php echo urlencode($row['path']); ?>&redirect=preview.php&file_id=<?php echo urlencode($row['id']); ?>" class="text-decoration-none">
+                                                                        <i class="mdi mdi-file file-icon"></i>
+                                                                        <?php echo htmlspecialchars($row['name']); ?>
+                                                                    </a>
+                                                                <?php else: ?>
+                                                                    <a href="<?php echo htmlspecialchars($row['path']); ?>" class="text-decoration-none" download>
+                                                                        <i class="mdi mdi-file file-icon"></i>
+                                                                        <?php echo htmlspecialchars($row['name']); ?>
+                                                                    </a>
+                                                                <?php endif; ?>
                                                             <?php else: ?>
-                                                            <span class="text-muted">
-                                                                <i class="mdi mdi-file-pdf file-icon"></i>
-                                                                <?php echo htmlspecialchars($row['name']); ?>
-                                                            </span>
+                                                                <span class="text-muted">
+                                                                    <i class="mdi mdi-file file-icon"></i>
+                                                                    <?php echo htmlspecialchars($row['name']); ?>
+                                                                </span>
                                                             <?php endif; ?>
                                                         <?php else: ?>
                                                             <?php if ($_SESSION["is_readable"]): ?>
@@ -245,6 +252,16 @@ $result = $stmt->get_result();
                                                     <td><?php echo date('Y-m-d H:i', strtotime($row['created_at'])); ?></td>
                                                     <td><?php echo date('Y-m-d H:i', strtotime($row['modified_at'])); ?></td>
                                                     <td>
+                                                        <?php if ($row['type'] == 'file'): ?>
+                                                            <?php 
+                                                            $fileExtension = strtolower(pathinfo($row['name'], PATHINFO_EXTENSION));
+                                                            if ($fileExtension === 'pdf'): 
+                                                            ?>
+                                                                <button class="btn btn-primary btn-sm preview-pdf" data-file-key="<?php echo htmlspecialchars($row['path']); ?>">
+                                                                    <i class="mdi mdi-eye"></i> Preview
+                                                                </button>
+                                                            <?php endif; ?>
+                                                        <?php endif; ?>
                                                         <?php if ($_SESSION["is_editable"]): ?>
                                                         <button class="btn btn-sm btn-info btn-action" onclick="renameItem(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['name']); ?>')">
                                                             <i class="mdi mdi-pencil"></i>
@@ -451,281 +468,171 @@ $result = $stmt->get_result();
                 }
             });
         };
+    });
 
-        // Function to handle delete
-        window.deleteItem = function(id, name) {
-            if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Permission Denied',
-                    text: 'You do not have permission to delete items'
-                });
-                return;
-            }
-
+    // Function to handle delete
+    window.deleteItem = function(id, name) {
+        if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
             Swal.fire({
-                title: 'Are you sure?',
-                text: `Do you want to delete "${name}"?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.post('includes/file_actions.php', {
-                        action: 'delete',
-                        id: id
-                    }, function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Deleted!',
-                                text: 'The item has been deleted.',
-                                showConfirmButton: false,
-                                timer: 1500
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: response.message
-                            });
-                        }
-                    }, 'json');
-                }
+                icon: 'error',
+                title: 'Permission Denied',
+                text: 'You do not have permission to delete items'
             });
-        };
+            return;
+        }
 
-        // Handle PDF viewing with presigned URL
-        $(document).on('click', '.view-pdf-btn', function(e) {
-            e.preventDefault();
-            const filePath = $(this).data('path');
-            const pdfViewer = $('#pdfViewer');
-            const pdfEmbed = $('#pdfEmbed');
-            
-            console.log('Requesting presigned URL for:', filePath);
-            
-            // Show loading state
-            pdfViewer.html('<div class="text-center p-5">Loading PDF...</div>');
-            $('#pdfViewerModal').modal('show');
-
-            // Get presigned URL
-            $.get('includes/get_presigned_url.php', { path: filePath })
-                .done(function(response) {
-                    try {
-                        console.log('Received response:', response);
-                        const data = typeof response === 'string' ? JSON.parse(response) : response;
-                        console.log('Parsed data:', data);
-                        
-                        if (data.success && data.url) {
-                            console.log('Loading PDF with URL:', data.url);
-                            
-                            // Create an iframe for better PDF handling
-                            const iframeHtml = `
-                                <div class="d-flex flex-column h-100">
-                                    <iframe 
-                                        src="${data.url}"
-                                        style="width: 100%; height: 80vh; border: none;"
-                                        type="application/pdf"
-                                    ></iframe>
-                                    <div class="text-center mt-2">
-                                        <a href="${data.url}" target="_blank" class="btn btn-primary">
-                                            Open in New Tab
-                                        </a>
-                                    </div>
-                                </div>
-                            `;
-                            
-                            pdfViewer.html(iframeHtml);
-                            
-                            // Add error handler for iframe
-                            pdfViewer.find('iframe').on('error', function() {
-                                console.error('Error loading PDF in iframe');
-                                pdfViewer.html(`
-                                    <div class="text-center p-5">
-                                        <p class="text-danger mb-3">Error loading PDF in viewer</p>
-                                        <a href="${data.url}" target="_blank" class="btn btn-primary">
-                                            Open PDF in New Tab
-                                        </a>
-                                    </div>
-                                `);
-                            });
-                        } else {
-                            console.error('Error in response:', data);
-                            pdfViewer.html(`
-                                <div class="text-center p-5 text-danger">
-                                    <p class="mb-3">Error: ${data.message || 'Could not load PDF'}</p>
-                                    ${data.debug ? '<small class="text-muted">Debug: ' + JSON.stringify(data.debug) + '</small>' : ''}
-                                </div>
-                            `);
-                        }
-                    } catch (e) {
-                        console.error('Error parsing response:', e);
-                        pdfViewer.html(`
-                            <div class="text-center p-5 text-danger">
-                                <p class="mb-3">Error processing response. Please try again.</p>
-                                <small class="text-muted">Error details: ${e.message}</small>
-                            </div>
-                        `);
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Do you want to delete "${name}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('includes/file_actions.php', {
+                    action: 'delete',
+                    id: id
+                }, function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            text: 'The item has been deleted.',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message
+                        });
                     }
-                })
-                .fail(function(jqXHR, textStatus, errorThrown) {
-                    console.error('AJAX Error:', {
-                        status: jqXHR.status,
-                        textStatus: textStatus,
-                        errorThrown: errorThrown
-                    });
-                    pdfViewer.html(`
-                        <div class="text-center p-5 text-danger">
-                            <p class="mb-3">Network error loading PDF. Please try again.</p>
-                            <small class="text-muted">Error: ${textStatus} - ${errorThrown}</small>
-                        </div>
-                    `);
-                });
+                }, 'json');
+            }
         });
+    };
 
-        // Function to handle create folder
-        function createFolder() {
-            if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-                alert('You do not have permission to create folders');
-                return;
-            }
-            const folderName = $('#folderName').val().trim();
-            const currentDirectory = '<?php echo $current_directory; ?>';
-            
-            if (!folderName) {
-                alert('Please enter a folder name');
-                return;
-            }
-
-            $.post('includes/file_actions.php', {
-                action: 'create_folder',
-                name: folderName,
-                parent_directory: currentDirectory
-            }, function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert('Error: ' + response.message);
-                }
-            }, 'json');
+    // Function to handle create folder
+    function createFolder() {
+        if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
+            alert('You do not have permission to create folders');
+            return;
+        }
+        const folderName = $('#folderName').val().trim();
+        const currentDirectory = '<?php echo $current_directory; ?>';
+        
+        if (!folderName) {
+            alert('Please enter a folder name');
+            return;
         }
 
-        // Clear form when modal is closed
-        $('#createFolderModal').on('hidden.bs.modal', function () {
-            $('#createFolderForm')[0].reset();
-        });
-
-        // Function to handle create file
-        function createFile() {
-            if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-                alert('You do not have permission to create files');
-                return;
-            }
-            const fileName = $('#fileName').val().trim();
-            const fileDescription = $('#fileDescription').val().trim();
-            const currentDirectory = '<?php echo $current_directory; ?>';
-            
-            if (!fileName) {
-                alert('Please enter a file name');
-                return;
-            }
-
-            $.post('includes/file_actions.php', {
-                action: 'create_file',
-                name: fileName,
-                description: fileDescription,
-                parent_directory: currentDirectory
-            }, function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert('Error: ' + response.message);
-                }
-            }, 'json');
-        }
-
-        // Clear form when modal is closed
-        $('#createFileModal').on('hidden.bs.modal', function () {
-            $('#createFileForm')[0].reset();
-        });
-
-        // Function to handle upload document
-        function uploadDocument() {
-            if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
-                alert('You do not have permission to upload documents');
-                return;
-            }
-            const formData = new FormData();
-            const fileInput = document.getElementById('documentFile');
-            const nameInput = document.getElementById('documentName');
-            const descriptionInput = document.getElementById('documentDescription');
-            const currentDirectory = '<?php echo $current_directory; ?>';
-
-            if (!fileInput.files[0]) {
-                alert('Please select a file');
-                return;
-            }
-
-            if (!nameInput.value.trim()) {
-                alert('Please enter a document name');
-                return;
-            }
-
-            formData.append('file', fileInput.files[0]);
-            formData.append('name', nameInput.value.trim());
-            formData.append('description', descriptionInput.value.trim());
-            formData.append('parent_directory', currentDirectory);
-
-            fetch('includes/upload_document.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error uploading document: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('Error uploading document');
-                console.error('Error:', error);
-            });
-        }
-
-        // Clear form when modal is closed
-        $('#uploadDocumentModal').on('hidden.bs.modal', function () {
-            $('#uploadDocumentForm')[0].reset();
-        });
-
-        // Function to handle view PDF
-        function viewPDF(fileName, filePath) {
-            const viewer = document.getElementById('pdfViewer');
-            const embed = document.getElementById('pdfEmbed');
-            
-            if (!<?php echo $_SESSION["is_downloadable"] ? 'true' : 'false'; ?>) {
-                // For non-downloadable viewing, add #toolbar=0 to disable the toolbar
-                viewer.data = filePath + '#toolbar=0';
-                embed.src = filePath + '#toolbar=0';
+        $.post('includes/file_actions.php', {
+            action: 'create_folder',
+            name: folderName,
+            parent_directory: currentDirectory
+        }, function(response) {
+            if (response.success) {
+                location.reload();
             } else {
-                viewer.data = filePath;
-                embed.src = filePath;
+                alert('Error: ' + response.message);
             }
-            
-            new bootstrap.Modal(document.getElementById('pdfViewerModal')).show();
+        }, 'json');
+    }
+
+    // Clear form when modal is closed
+    $('#createFolderModal').on('hidden.bs.modal', function () {
+        $('#createFolderForm')[0].reset();
+    });
+
+    // Function to handle create file
+    function createFile() {
+        if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
+            alert('You do not have permission to create files');
+            return;
+        }
+        const fileName = $('#fileName').val().trim();
+        const fileDescription = $('#fileDescription').val().trim();
+        const currentDirectory = '<?php echo $current_directory; ?>';
+        
+        if (!fileName) {
+            alert('Please enter a file name');
+            return;
         }
 
-        // Clear iframe when modal is closed
-        document.getElementById('pdfViewerModal').addEventListener('hidden.bs.modal', function () {
-            document.getElementById('pdfViewer').src = '';
+        $.post('includes/file_actions.php', {
+            action: 'create_file',
+            name: fileName,
+            description: fileDescription,
+            parent_directory: currentDirectory
+        }, function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        }, 'json');
+    }
+
+    // Clear form when modal is closed
+    $('#createFileModal').on('hidden.bs.modal', function () {
+        $('#createFileForm')[0].reset();
+    });
+
+    // Function to handle upload document
+    function uploadDocument() {
+        if (!<?php echo $_SESSION["is_editable"] ? 'true' : 'false'; ?>) {
+            alert('You do not have permission to upload documents');
+            return;
+        }
+        const formData = new FormData();
+        const fileInput = document.getElementById('documentFile');
+        const nameInput = document.getElementById('documentName');
+        const descriptionInput = document.getElementById('documentDescription');
+        const currentDirectory = '<?php echo $current_directory; ?>';
+
+        if (!fileInput.files[0]) {
+            alert('Please select a file');
+            return;
+        }
+
+        if (!nameInput.value.trim()) {
+            alert('Please enter a document name');
+            return;
+        }
+
+        formData.append('file', fileInput.files[0]);
+        formData.append('name', nameInput.value.trim());
+        formData.append('description', descriptionInput.value.trim());
+        formData.append('parent_directory', currentDirectory);
+
+        fetch('includes/upload_document.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error uploading document: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error uploading document');
+            console.error('Error:', error);
         });
+    }
+
+    // Clear form when modal is closed
+    $('#uploadDocumentModal').on('hidden.bs.modal', function () {
+        $('#uploadDocumentForm')[0].reset();
     });
     </script>
 </body>
-</html> 
+</html>

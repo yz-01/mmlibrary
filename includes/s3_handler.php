@@ -47,7 +47,7 @@ function createAWSSignature($region, $service, $accessKey, $secretKey, $method, 
     return [$authorizationHeader, $amzDate];
 }
 
-function uploadFileToS3($filePath, $bucket, $folder, $region, $endpoint, $accessKey, $secretKey) {
+function uploadFileToS3($filePath, $bucket, $folder, $region, $endpoint, $accessKey, $secretKey, $customFilename = null) {
     // Read the file content
     $fileContent = file_get_contents($filePath);
     if ($fileContent === false) {
@@ -68,7 +68,8 @@ function uploadFileToS3($filePath, $bucket, $folder, $region, $endpoint, $access
     
     // Create a canonical request
     $method = 'PUT';
-    $canonicalUri = "/$bucket/$folder/" . basename($filePath);
+    $filename = $customFilename ?? basename($filePath);
+    $canonicalUri = "/$bucket/$folder/$filename";
     $canonicalQueryString = '';
     $canonicalHeaders = "host:$endpoint\nx-amz-content-sha256:$contentHash\nx-amz-date:$longDate\n";
     $signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
@@ -93,7 +94,7 @@ function uploadFileToS3($filePath, $bucket, $folder, $region, $endpoint, $access
     $authorizationHeader = "$algorithm Credential=$accessKey/$scope, SignedHeaders=$signedHeaders, Signature=$signature";
 
     // Correct URL construction
-    $url = "https://$endpoint/$bucket/$folder/" . basename($filePath);
+    $url = "https://$endpoint/$bucket/$folder/$filename";
 
     // Initialize cURL
     $ch = curl_init($url);
@@ -120,7 +121,7 @@ function uploadFileToS3($filePath, $bucket, $folder, $region, $endpoint, $access
         throw new Exception("Error uploading file to S3: HTTP code $httpCode");
     }
 
-    return "https://$endpoint/$bucket/$folder/" . basename($filePath);
+    return "https://$endpoint/$bucket/$folder/$filename";
 }
 
 function generatePresignedUrl($objectKey, $expireSeconds = 3600) {

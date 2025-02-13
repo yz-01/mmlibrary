@@ -50,13 +50,13 @@ if (!in_array($fileExtension, $allowedExtensions)) {
 // }
 
 try {
-    // Generate unique filename
+    // Generate unique filename with extension
     $uniqueFilename = uniqid() . '.' . $fileExtension;
     
     // Create a folder name based on current date
     $folder = date('Y-m-d');
     
-    // Upload to S3
+    // Upload to S3 with the unique filename
     $s3_url = uploadFileToS3(
         $file['tmp_name'],
         S3_BUCKET,
@@ -64,7 +64,8 @@ try {
         S3_REGION,
         S3_ENDPOINT,
         S3_ACCESS_KEY,
-        S3_SECRET_KEY
+        S3_SECRET_KEY,
+        $uniqueFilename  // Pass the unique filename with extension
     );
 
     // Save file information to database

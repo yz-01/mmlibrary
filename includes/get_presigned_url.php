@@ -40,7 +40,21 @@ try {
     
     // For debugging
     error_log("Generated presigned URL: " . $presignedUrl);
-    
+
+    // Get redirect parameters if present
+    $redirect = $_GET['redirect'] ?? '';
+    $file_id = $_GET['file_id'] ?? '';
+
+    // If redirect is specified, redirect to the page with the presigned URL
+    if ($redirect && $presignedUrl) {
+        $redirectUrl = "../{$redirect}?url=" . urlencode($presignedUrl);
+        if ($file_id) {
+            $redirectUrl .= "&file=" . urlencode($file_id);
+        }
+        header("Location: " . $redirectUrl);
+        exit;
+    }
+
     echo json_encode([
         'success' => true,
         'url' => $presignedUrl,
