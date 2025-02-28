@@ -188,19 +188,33 @@ if ($_POST['action'] === 'rename') {
 
         // If it's a folder, we need to update all child paths
         if ($item['type'] === 'folder') {
+            // First, update the parent_directory for all items directly under this folder
+            // This handles both regular files and URL-based files
+            $update_parent_sql = "UPDATE folders_files SET 
+                                parent_directory = ? 
+                                WHERE parent_directory = ?";
+            $update_parent_stmt = $conn->prepare($update_parent_sql);
+            $update_parent_stmt->bind_param("ss", $new_path, $item['path']);
+            $update_parent_stmt->execute();
+            
+            // Then update the path for non-URL files
             $old_path_pattern = $item['path'] . '/%';
-            // Update paths for all child items
             $path_update_sql = "UPDATE folders_files SET 
-                               path = CONCAT(?, SUBSTRING(path, ?)),
-                               parent_directory = CASE 
-                                   WHEN parent_directory = ? THEN ?
-                                   ELSE CONCAT(?, SUBSTRING(parent_directory, ?))
-                               END
-                               WHERE path LIKE ?";
+                               path = CONCAT(?, SUBSTRING(path, ?))
+                               WHERE path LIKE ? AND path NOT LIKE 'https://%'";
             $path_update_stmt = $conn->prepare($path_update_sql);
             $old_path_len = strlen($item['path']) + 1;
-            $path_update_stmt->bind_param("sisssss", $new_path, $old_path_len, $item['path'], $new_path, $new_path, $old_path_len, $old_path_pattern);
+            $path_update_stmt->bind_param("sis", $new_path, $old_path_len, $old_path_pattern);
             $path_update_stmt->execute();
+            
+            // Update parent_directory for nested folders
+            $nested_parent_sql = "UPDATE folders_files SET 
+                                parent_directory = CONCAT(?, SUBSTRING(parent_directory, ?))
+                                WHERE parent_directory LIKE ? AND parent_directory != ?";
+            $nested_parent_stmt = $conn->prepare($nested_parent_sql);
+            $nested_parent_pattern = $item['path'] . '/%';
+            $nested_parent_stmt->bind_param("siss", $new_path, $old_path_len, $nested_parent_pattern, $item['path']);
+            $nested_parent_stmt->execute();
         }
 
         // Update the item itself
