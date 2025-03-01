@@ -29,6 +29,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
             <li class="nav-item">
                 <div class="nav-link">
                     <span class="text-danger fw-bold" id="sessionTimer"></span>
+                    <!-- <button id="extendSessionBtn" class="btn btn-sm btn-outline-primary ms-2" onclick="extendSession(); return false;">Extend Session</button> -->
                 </div>
             </li>
             <style>
@@ -68,6 +69,43 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
                 echo $_SESSION["expire_timestamp"];
             ?> * 1000; // Convert to milliseconds
 
+            // Function to extend the session
+            function extendSession() {
+                fetch('includes/extend_session.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success' || data.status === 'warning') {
+                        // Update the expiration time
+                        expireTime = data.new_expire_time * 1000;
+                        
+                        // Reset the timer display
+                        document.getElementById('sessionTimer').classList.remove('bg-danger', 'text-white');
+                        updateTimer();
+                        
+                        // Show success message
+                        alert('Your session has been extended successfully.');
+                    } else {
+                        alert('Failed to extend session: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error extending session:', error);
+                    // The session may still have been extended even if there was an error in the response
+                    // So we'll refresh the timer anyway
+                    location.reload();
+                });
+            }
+
             function updateTimer() {
                 const now = new Date().getTime();
                 const distance = expireTime - now;
@@ -91,6 +129,21 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
                 // Add warning class when less than 30 seconds
                 if (distance <= 30000) {
                     document.getElementById('sessionTimer').classList.add('bg-danger', 'text-white');
+                    
+                    // Show confirmation dialog if we haven't shown it yet for this countdown
+                    if (!sessionStorage.getItem('alertShown')) {
+                        if (confirm('Your session will expire in less than 30 seconds! Would you like to extend your session?')) {
+                            // User clicked OK - extend the session
+                            extendSession();
+                        }
+                        sessionStorage.setItem('alertShown', 'true');
+                    }
+                }
+                
+                // Reset the alert flag if we're back above 30 seconds
+                // This allows the alert to show again in the next countdown
+                if (distance > 30000) {
+                    sessionStorage.removeItem('alertShown');
                 }
             }
 
