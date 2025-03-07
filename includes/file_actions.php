@@ -183,8 +183,11 @@ if ($_POST['action'] === 'rename') {
             throw new Exception('An item with this name already exists in this directory');
         }
 
-        // Create the new path
-        $new_path = $item['parent_directory'] ? $item['parent_directory'] . '/' . $new_name : $new_name;
+        // Create the new path only for folder or file types
+        $new_path = $item['path']; // Default to keeping the existing path
+        if ($item['type'] === 'folder' || $item['type'] === 'file') {
+            $new_path = $item['parent_directory'] ? $item['parent_directory'] . '/' . $new_name : $new_name;
+        }
 
         // If it's a folder, we need to update all child paths
         if ($item['type'] === 'folder') {
