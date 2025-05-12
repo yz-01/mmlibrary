@@ -23,6 +23,7 @@ $result = $conn->query($sql);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -71,11 +72,11 @@ $result = $conn->query($sql);
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php while($row = $result->fetch_assoc()): ?>
+                                                <?php while ($row = $result->fetch_assoc()): ?>
                                                     <tr>
                                                         <td><?php echo date('Y-m-d H:i:s', strtotime($row['created_at'])); ?></td>
                                                         <td>
-                                                            <?php 
+                                                            <?php
                                                             if ($row['user_id']) {
                                                                 echo htmlspecialchars($row['email'] ?? 'N/A');
                                                             } else {
@@ -85,7 +86,7 @@ $result = $conn->query($sql);
                                                         </td>
                                                         <td><?php echo htmlspecialchars($row['ip_address']); ?></td>
                                                         <td>
-                                                            <?php 
+                                                            <?php
                                                             if (!empty($row['location'])) {
                                                                 $location = json_decode($row['location'], true);
                                                                 if ($location) {
@@ -129,21 +130,22 @@ $result = $conn->query($sql);
                                                         </td>
                                                         <td>
                                                             <?php
-                                                            $statusClass = $row['status'] === 'SUCCESS' 
-                                                                ? 'badge badge-success' 
+                                                            $statusClass = strtolower($row['status']) === 'success'
+                                                                ? 'badge badge-success'
                                                                 : 'badge badge-danger';
                                                             ?>
                                                             <span class="<?php echo $statusClass; ?>">
-                                                                <?php echo htmlspecialchars($row['status']); ?>
+                                                                <?php echo strtoupper(htmlspecialchars($row['status'])); ?>
                                                             </span>
+
                                                         </td>
                                                         <td>
                                                             <?php if (!empty($row['details'])): ?>
-                                                                <button type="button" 
-                                                                        class="btn btn-sm btn-info view-details" 
-                                                                        data-bs-toggle="tooltip" 
-                                                                        data-bs-placement="top" 
-                                                                        title="<?php echo htmlspecialchars($row['details']); ?>">
+                                                                <button type="button"
+                                                                    class="btn btn-sm btn-info view-details"
+                                                                    data-bs-toggle="tooltip"
+                                                                    data-bs-placement="top"
+                                                                    title="<?php echo htmlspecialchars($row['details']); ?>">
                                                                     View
                                                                 </button>
                                                             <?php endif; ?>
@@ -189,32 +191,35 @@ $result = $conn->query($sql);
     <script src="assets/js/misc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    $(document).ready(function() {
-        // Initialize DataTable
-        $('#logsTable').DataTable({
-            "order": [[0, "desc"]], // Sort by date/time by default
-            "pageLength": 25 // Show 25 entries per page
-        });
+        $(document).ready(function() {
+            // Initialize DataTable
+            $('#logsTable').DataTable({
+                "order": [
+                    [0, "desc"]
+                ], // Sort by date/time by default
+                "pageLength": 25 // Show 25 entries per page
+            });
 
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
 
-        // Handle details view
-        $('.view-details').click(function() {
-            var details = $(this).attr('data-bs-original-title');
-            $('#detailsContent').text(details);
-            var detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
-            detailsModal.show();
+            // Handle details view
+            $('.view-details').click(function() {
+                var details = $(this).attr('data-bs-original-title');
+                $('#detailsContent').text(details);
+                var detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+                detailsModal.show();
+            });
         });
-    });
     </script>
 </body>
+
 </html>
 
 <?php
 // Close the database connection
 $conn->close();
-?> 
+?>

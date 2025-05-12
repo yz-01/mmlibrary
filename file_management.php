@@ -12,6 +12,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 
 // Database connection
 require_once "includes/db/config.php";
+// Include logging functions
+require_once "includes/logging.php";
 
 // Get current directory path
 $current_directory = isset($_GET['dir']) ? $_GET['dir'] : '';
@@ -36,6 +38,10 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $current_directory);
 $stmt->execute();
 $result = $stmt->get_result();
+
+// Log directory view
+$dir_name = $current_directory ? $current_directory : 'root directory';
+log_activity($_SESSION['id'], 'view_directory', 'success', "Viewed directory: $dir_name");
 ?>
 
 <!DOCTYPE html>
@@ -418,6 +424,50 @@ $result = $stmt->get_result();
                 { "orderable": false, "targets": 4 } // Disable sorting on actions column
             ]
         });
+
+        // Add click handlers to log file/document views
+        $('a[href^="spreadsheet.php"]').on('click', function() {
+            const fileName = $(this).text().trim();
+            const fileId = $(this).attr('href').split('=')[1];
+            logFileView('view_spreadsheet', fileName, fileId);
+        });
+        
+        $('a[href^="includes/get_presigned_url.php"]').on('click', function() {
+            const fileName = $(this).text().trim();
+            const fileId = $(this).attr('href').split('file_id=')[1];
+            logFileView('view_document', fileName, fileId);
+        });
+        
+        $('a[href$=".pdf"], a[href$=".docx"], a[href$=".xlsx"], a[href$=".jpg"], a[href$=".jpeg"]').not('[href^="includes/get_presigned_url.php"]').on('click', function() {
+            const fileName = $(this).text().trim();
+            logFileView('download_file', fileName, '');
+        });
+        
+        $('.preview-pdf').on('click', function() {
+            const fileKey = $(this).data('file-key');
+            const fileName = $(this).closest('tr').find('td:first-child').text().trim();
+            logFileView('preview_pdf', fileName, '');
+            
+            // Open PDF viewer modal with the file
+            $.get('includes/get_presigned_url.php', { path: fileKey }, function(response) {
+                if (response.success) {
+                    $('#pdfViewer').attr('data', response.url);
+                    $('#pdfEmbed').attr('src', response.url);
+                    $('#pdfViewerModal').modal('show');
+                } else {
+                    alert('Error loading PDF: ' + response.message);
+                }
+            }, 'json');
+        });
+        
+        // Function to log file views via AJAX
+        function logFileView(action, fileName, fileId) {
+            $.post('includes/log_action.php', {
+                action: action,
+                file_name: fileName,
+                file_id: fileId
+            });
+        }
 
         // Function to handle rename
         window.renameItem = function(id, currentName) {

@@ -12,6 +12,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 
 // Database connection
 require_once "includes/db/config.php";
+// Include logging functions
+require_once "includes/logging.php";
 
 // Get file information with its full path
 $file_id = isset($_GET['file']) ? $_GET['file'] : null;
@@ -39,6 +41,9 @@ if (!$file) {
     header("location: file_management.php");
     exit;
 }
+
+// Log file view
+log_activity($_SESSION['id'], 'view_spreadsheet', 'success', "Viewed spreadsheet: " . $file['name'] . " (ID: " . $file_id . ")");
 
 // Generate breadcrumb data
 $path_parts = $file['parent_directory'] ? explode('/', trim($file['parent_directory'], '/')) : [];
@@ -291,6 +296,7 @@ $content = $file['content'] ?? '';
         });
 
         const fileId = <?php echo $file_id; ?>;
+        const fileName = "<?php echo addslashes($file['name']); ?>";
         
         fetch('includes/save_file_content.php', {
             method: 'POST',
@@ -299,6 +305,7 @@ $content = $file['content'] ?? '';
             },
             body: JSON.stringify({
                 file_id: fileId,
+                file_name: fileName,
                 content: JSON.stringify(fields)
             })
         })

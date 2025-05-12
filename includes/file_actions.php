@@ -11,6 +11,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 
 // Database connection
 require_once "db/config.php";
+// Include logging functions
+require_once "logging.php";
 
 // Handle create folder action
 if ($_POST['action'] === 'create_folder') {
@@ -44,8 +46,16 @@ if ($_POST['action'] === 'create_folder') {
         $stmt->bind_param("sssii", $name, $path, $parent_directory, $_SESSION['id'], $_SESSION['id']);
 
         if ($stmt->execute()) {
+            // Log the successful folder creation
+            $details = "Created folder: $name in " . ($parent_directory ? $parent_directory : 'root directory');
+            log_activity($_SESSION['id'], 'create_folder', 'success', $details);
+            
             echo json_encode(['success' => true]);
         } else {
+            // Log the failed attempt
+            $details = "Failed to create folder: $name in " . ($parent_directory ? $parent_directory : 'root directory');
+            log_activity($_SESSION['id'], 'create_folder', 'failed', $details);
+            
             throw new Exception('Could not create folder');
         }
         
@@ -87,8 +97,16 @@ if ($_POST['action'] === 'create_file') {
         $stmt->bind_param("ssssii", $name, $path, $parent_directory, $description, $_SESSION['id'], $_SESSION['id']);
         
         if ($stmt->execute()) {
+            // Log the successful file creation
+            $details = "Created file: $name in " . ($parent_directory ? $parent_directory : 'root directory');
+            log_activity($_SESSION['id'], 'create_file', 'success', $details);
+            
             echo json_encode(['success' => true, 'file_id' => $stmt->insert_id]);
         } else {
+            // Log the failed attempt
+            $details = "Failed to create file: $name in " . ($parent_directory ? $parent_directory : 'root directory');
+            log_activity($_SESSION['id'], 'create_file', 'failed', $details);
+            
             throw new Exception('Could not create file');
         }
         
@@ -107,7 +125,7 @@ if ($_POST['action'] === 'delete') {
         $id = $_POST['id'];
         
         // First get the item details to check if it's a folder
-        $check_sql = "SELECT type, path FROM folders_files WHERE id = ?";
+        $check_sql = "SELECT type, path, name FROM folders_files WHERE id = ?";
         $check_stmt = $conn->prepare($check_sql);
         $check_stmt->bind_param("i", $id);
         $check_stmt->execute();
@@ -138,8 +156,16 @@ if ($_POST['action'] === 'delete') {
         $stmt->bind_param("i", $id);
         
         if ($stmt->execute()) {
+            // Log the successful deletion
+            $details = "Deleted " . $item['type'] . ": " . $item['name'] . " (path: " . $item['path'] . ")";
+            log_activity($_SESSION['id'], 'delete_' . $item['type'], 'success', $details);
+            
             echo json_encode(['success' => true]);
         } else {
+            // Log the failed deletion
+            $details = "Failed to delete " . $item['type'] . ": " . $item['name'] . " (path: " . $item['path'] . ")";
+            log_activity($_SESSION['id'], 'delete_' . $item['type'], 'failed', $details);
+            
             throw new Exception('Could not delete item');
         }
         
@@ -163,7 +189,7 @@ if ($_POST['action'] === 'rename') {
         }
 
         // Get current item details
-        $check_sql = "SELECT type, parent_directory, path FROM folders_files WHERE id = ?";
+        $check_sql = "SELECT type, parent_directory, path, name FROM folders_files WHERE id = ?";
         $check_stmt = $conn->prepare($check_sql);
         $check_stmt->bind_param("i", $id);
         $check_stmt->execute();
@@ -226,8 +252,16 @@ if ($_POST['action'] === 'rename') {
         $stmt->bind_param("ssii", $new_name, $new_path, $_SESSION['id'], $id);
         
         if ($stmt->execute()) {
+            // Log the successful rename
+            $details = "Renamed " . $item['type'] . ": " . $item['name'] . " to " . $new_name;
+            log_activity($_SESSION['id'], 'rename_' . $item['type'], 'success', $details);
+            
             echo json_encode(['success' => true]);
         } else {
+            // Log the failed rename attempt
+            $details = "Failed to rename " . $item['type'] . ": " . $item['name'] . " to " . $new_name;
+            log_activity($_SESSION['id'], 'rename_' . $item['type'], 'failed', $details);
+            
             throw new Exception('Could not rename item');
         }
         

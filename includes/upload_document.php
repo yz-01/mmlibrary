@@ -12,9 +12,13 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 // Database connection and S3 handler
 require_once "db/config.php";
 require_once "s3_handler.php";
+// Include logging functions
+require_once "logging.php";
 
 // Check if file was uploaded
 if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+    // Log failed upload attempt
+    log_activity($_SESSION['id'], 'upload_document', 'failed', 'No file uploaded or upload error');
     die(json_encode(['success' => false, 'message' => 'No file uploaded or upload error']));
 }
 
@@ -33,6 +37,9 @@ $allowedMimeTypes = [
     'application/pdf'
 ];
 if (!in_array($fileType, $allowedMimeTypes)) {
+    // Log invalid file type upload attempt
+    $details = "Invalid file type attempted upload: $name, type: $fileType";
+    log_activity($_SESSION['id'], 'upload_document', 'failed', $details);
     die(json_encode(['success' => false, 'message' => 'Only PDF, JPEG, XLSX, and DOCX files are allowed']));
 }
 
@@ -40,6 +47,9 @@ if (!in_array($fileType, $allowedMimeTypes)) {
 $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 $allowedExtensions = ['jpg', 'jpeg', 'xlsx', 'docx', 'pdf'];
 if (!in_array($fileExtension, $allowedExtensions)) {
+    // Log invalid file extension upload attempt
+    $details = "Invalid file extension attempted upload: $name, extension: $fileExtension";
+    log_activity($_SESSION['id'], 'upload_document', 'failed', $details);
     die(json_encode(['success' => false, 'message' => 'Only PDF, JPEG, XLSX, and DOCX files are allowed']));
 }
 
@@ -81,7 +91,7 @@ try {
     ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssssi", 
+    $stmt->bind_param("sssssii", 
         $name,           // name
         $fileExtension,  // type
         $s3_url,        // path (now stores S3 URL)
@@ -92,12 +102,25 @@ try {
     );
 
     if ($stmt->execute()) {
+        // Log successful file upload
+        $location = $parent_directory ? $parent_directory : 'root directory';
+        $details = "Uploaded file: $name ($fileExtension) to $location, size: " . round($file['size']/1024, 2) . " KB";
+        log_activity($_SESSION['id'], 'upload_document', 'success', $details);
+        
         echo json_encode(['success' => true]);
     } else {
+        // Log database error
+        $details = "Database error during upload: " . $stmt->error;
+        log_activity($_SESSION['id'], 'upload_document', 'failed', $details);
+        
         echo json_encode(['success' => false, 'message' => 'Database error: ' . $stmt->error]);
     }
 
 } catch (Exception $e) {
+    // Log exception during upload
+    $details = "Upload error: " . $e->getMessage();
+    log_activity($_SESSION['id'], 'upload_document', 'failed', $details);
+    
     echo json_encode(['success' => false, 'message' => 'Upload error: ' . $e->getMessage()]);
 }
 
