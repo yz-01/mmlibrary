@@ -10,12 +10,34 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
+// Database connection
+require_once "includes/db/config.php";
+// Include logging functions
+require_once "includes/logging.php";
+
 // Get the presigned URL and file info from the query parameter
 $fileUrl = $_GET['url'] ?? '';
 $fileId = $_GET['file'] ?? '';
 
 if (empty($fileUrl)) {
     die("Error: No URL provided");
+}
+
+// If file ID is present, log file preview
+if (!empty($fileId)) {
+    // Get file name
+    $sql = "SELECT name FROM folders_files WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $fileId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $file = $result->fetch_assoc();
+    
+    if ($file) {
+        $fileName = $file['name'];
+        // Log file preview
+        log_activity($_SESSION['id'], 'preview_file', 'success', "Previewed file: $fileName (ID: $fileId)");
+    }
 }
 
 // Determine file type from URL
@@ -143,7 +165,7 @@ function getFileIconClass($extension) {
                                             <i class="mdi mdi-arrow-left"></i> Back to Files
                                         </a>
                                         <?php if ($_SESSION["is_downloadable"]): ?>
-                                        <a href="<?php echo htmlspecialchars($fileUrl); ?>" class="btn btn-primary" download>
+                                        <a href="<?php echo htmlspecialchars($fileUrl); ?>" class="btn btn-primary download-file-btn" data-file-id="<?php echo htmlspecialchars($fileId); ?>" data-file-name="<?php echo htmlspecialchars($file['name'] ?? pathinfo(parse_url($fileUrl, PHP_URL_PATH), PATHINFO_BASENAME)); ?>" download>
                                             <i class="mdi mdi-download"></i> Download File
                                         </a>
                                         <?php endif; ?>
@@ -179,7 +201,7 @@ function getFileIconClass($extension) {
                                                 Please download the file to view its contents.
                                             </h4>
                                             <?php if ($_SESSION["is_downloadable"]): ?>
-                                            <a href="<?php echo htmlspecialchars($fileUrl); ?>" class="btn btn-primary btn-lg" download>
+                                            <a href="<?php echo htmlspecialchars($fileUrl); ?>" class="btn btn-primary btn-lg download-file-btn" data-file-id="<?php echo htmlspecialchars($fileId); ?>" data-file-name="<?php echo htmlspecialchars($file['name'] ?? pathinfo(parse_url($fileUrl, PHP_URL_PATH), PATHINFO_BASENAME)); ?>" download>
                                                 <i class="mdi mdi-download"></i> Download File
                                             </a>
                                             <?php endif; ?>
@@ -206,5 +228,32 @@ function getFileIconClass($extension) {
     <script src="assets/js/hoverable-collapse.js"></script>
     <script src="assets/js/misc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+    // Add event listeners to download buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.download-file-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const fileId = this.getAttribute('data-file-id');
+                const fileName = this.getAttribute('data-file-name');
+                
+                // Log the download action via AJAX
+                fetch('includes/log_action.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'action': 'download_file',
+                        'file_name': fileName,
+                        'file_id': fileId
+                    })
+                }).catch(error => {
+                    console.error('Error logging download:', error);
+                });
+            });
+        });
+    });
+    </script>
 </body>
 </html>
